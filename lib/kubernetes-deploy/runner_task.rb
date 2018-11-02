@@ -45,14 +45,14 @@ module KubernetesDeploy
       else
         record_status_once(pod)
       end
-      ::StatsD.measure('run.duration', StatsD.duration(start), tags: tags('success', entrypoint))
+      ::StatsD.distribution('run.duration', StatsD.duration(start), tags: tags('success', entrypoint))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      ::StatsD.measure('run.duration', StatsD.duration(start), tags: tags('timeout', entrypoint))
+      ::StatsD.distribution('run.duration', StatsD.duration(start), tags: tags('timeout', entrypoint))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', entrypoint))
+      ::StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('failure', entrypoint))
       @logger.print_summary(:failure)
       raise
     end
