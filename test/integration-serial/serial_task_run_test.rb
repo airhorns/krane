@@ -18,7 +18,10 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     mock.expects(:create_pod).raises(Kubeclient::HttpError.new("409", "Pod with same name exists", {}))
     task_runner.instance_variable_set(:@kubeclient, mock)
 
-    result = task_runner.run(run_params(verify_result: false))
+    result = false
+    metrics = capture_statsd_calls do
+      result = task_runner.run(run_params(verify_result: false))
+    end
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -27,5 +30,9 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
       "Failed to create pod",
       "Kubeclient::HttpError: Pod with same name exists"
     ], in_order: true)
+
+    metric_tags = metrics.first.tags
+    assert_includes metric_tags, "namespace:#{@namespace}"
+    assert_includes metric_tags, "status:failure"
   end
 end

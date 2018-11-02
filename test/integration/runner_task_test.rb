@@ -9,10 +9,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     task_runner = build_task_runner
     assert_nil task_runner.pod_name
-    result = false
-    metrics = capture_statsd_calls do
-      result = task_runner.run(run_params(verify_result: false))
-    end
+    result = task_runner.run(run_params(verify_result: false))
     assert_task_run_success(result)
 
     assert_logs_match_all([
@@ -27,20 +24,13 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
     assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
-
-    metric_tags = metrics.first.tags
-    assert_includes metric_tags, "namespace:#{@namespace}"
-    assert_includes metric_tags, "status:success"
   end
 
   def test_run_global_timeout_with_max_watch_seconds
     deploy_task_template
 
     task_runner = build_task_runner(max_watch_seconds: 5)
-    result = false
-    metrics = capture_statsd_calls do
-      result = task_runner.run(run_params(log_lines: 8, log_interval: 1))
-    end
+    result = task_runner.run(run_params(log_lines: 8, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
     assert_logs_match_all([
@@ -49,18 +39,13 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)},
       /Final status\: (Pending|Running)/
     ], in_order: true)
-
-    assert_includes metrics.first.tags, "status:timeout"
   end
 
   def test_run_with_verify_result_failure
     deploy_task_template
 
     task_runner = build_task_runner
-    result = false
-    metrics = capture_statsd_calls do
-      result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
-    end
+    result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -75,7 +60,6 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
     assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
-    assert_includes metrics.first.tags, "status:failure"
   end
 
   def test_run_with_verify_result_success
